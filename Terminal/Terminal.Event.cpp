@@ -8,6 +8,7 @@ using namespace sf;
 
 
 namespace {
+#ifndef SFML_SYSTEM_MACOS
 	VTermModifier getModifier() {
 		int mod = VTERM_MOD_NONE;
 		if (Keyboard::isKeyPressed(Keyboard::LShift) || Keyboard::isKeyPressed(Keyboard::RShift))
@@ -18,12 +19,25 @@ namespace {
 			mod |= VTERM_MOD_ALT;
 		return (VTermModifier)mod;
 	}
+#endif
 
 	Vector2i getMouseCell(int x, int y, Vector2i cellSize) {
 		return Vector2i(x / cellSize.x, y / cellSize.y);
 	}
 }
 
+#ifdef SFML_SYSTEM_MACOS
+VTermModifier Terminal::getModifier() {
+	int mod = VTERM_MOD_NONE;
+	if (leftShiftDown || rightShiftDown)
+		mod |= VTERM_MOD_SHIFT;
+	if (leftCtrlDown || rightCtrlDown)
+		mod |= VTERM_MOD_CTRL;
+	if (leftAltDown || rightAltDown)
+		mod |= VTERM_MOD_ALT;
+	return (VTermModifier)mod;
+}
+#endif
 
 void Terminal::processEvent(RenderWindow& win, Event e) {
 
@@ -178,6 +192,59 @@ void Terminal::processEvent(RenderWindow& win, Event e) {
 			break;
 #endif
 		}
+#ifdef SFML_SYSTEM_MACOS
+		// On macOS, most CTRL-X keys does not count as TextInput events
+		// We have to fill them in ourselves
+
+		// Minor hack to get modifier keys states without using Keyboard::isKeyPressed
+		if (e.key.code == Keyboard::LControl)
+			leftCtrlDown = true;
+		if (e.key.code == Keyboard::RControl)
+			rightCtrlDown = true;
+		if (e.key.code == Keyboard::LShift)
+			leftShiftDown = true;
+		if (e.key.code == Keyboard::RShift)
+			rightShiftDown = true;
+		if (e.key.code == Keyboard::LAlt)
+			leftAltDown = true;
+		if (e.key.code == Keyboard::RAlt)
+			rightAltDown = true;
+
+		if (e.key.code >= Keyboard::A && e.key.code <= Keyboard::Z || e.key.code == Keyboard::LBracket || e.key.code == Keyboard::RBracket) {
+			//if (Keyboard::isKeyPressed(Keyboard::LControl) || Keyboard::isKeyPressed(Keyboard::RControl)) {
+			if (leftCtrlDown || rightCtrlDown) {
+				VTermModifier mod = getModifier();
+				int code;
+				if (e.key.code >= Keyboard::A && e.key.code <= Keyboard::Z)
+					code = e.key.code - Keyboard::A + ((mod & VTERM_MOD_SHIFT) ? 'A' : 'a');
+				else {
+					switch (e.key.code) {
+					case Keyboard::LBracket:
+						code = '['; break;
+					case Keyboard::RBracket:
+						code = ']'; break;
+					}
+				}
+
+				// Let's not forget pasting
+				if (code == 'V') {
+					fprintf(stderr, "Paste (macOS)\n");
+					vterm_keyboard_start_paste(term);
+					String s = Clipboard::getString();
+					for (Uint32 c : s) {
+						if (c == '\r')
+							continue;
+						vterm_keyboard_unichar(term, c, VTermModifier(0));
+					}
+					vterm_keyboard_end_paste(term);
+				} else {
+					fprintf(stderr, "Main: TextEnter(macOS), keycode=%d(%c), Ctrl:%s, Shift:%s, Alt:%s\n", (int)code, (char)code,
+						(mod & VTERM_MOD_CTRL) ? "Yes" : "No", (mod & VTERM_MOD_SHIFT) ? "Yes" : "No", (mod & VTERM_MOD_ALT) ? "Yes" : "No");
+					vterm_keyboard_unichar(term, code, mod);
+				}
+			}
+		}
+#endif
 		if (e.key.code >= Keyboard::F1 && e.key.code <= Keyboard::F15)
 			key = (VTermKey)(VTERM_KEY_FUNCTION((int)e.key.code - Keyboard::F1 + 1));
 		if (key != VTERM_KEY_NONE)
@@ -191,6 +258,25 @@ void Terminal::processEvent(RenderWindow& win, Event e) {
 
 		break;
 	}
+#ifdef SFML_SYSTEM_MACOS
+	case Event::KeyReleased:
+	{
+		// Minor hack to get modifier keys states without using Keyboard::isKeyPressed (Part II)
+		if (e.key.code == Keyboard::LControl)
+			leftCtrlDown = false;
+		if (e.key.code == Keyboard::RControl)
+			rightCtrlDown = false;
+		if (e.key.code == Keyboard::LShift)
+			leftShiftDown = false;
+		if (e.key.code == Keyboard::RShift)
+			rightShiftDown = false;
+		if (e.key.code == Keyboard::LAlt)
+			leftAltDown = false;
+		if (e.key.code == Keyboard::RAlt)
+			rightAltDown = false;
+		break;
+	}
+#endif
 	case Event::Resized:
 	{
 		if (e.size.width / cellSize.x != cols || e.size.height / cellSize.y != rows) {
