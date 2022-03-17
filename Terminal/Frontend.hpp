@@ -13,7 +13,7 @@
 class Frontend :public sf::NonCopyable {
 public:
 
-    static std::size_t npos;
+    static constexpr std::size_t npos = static_cast<size_t>(-1);
 
 public:
 
@@ -47,5 +47,3 @@ protected:
 	std::atomic_bool running;
 
 };
-
-std::size_t Frontend::npos = static_cast<size_t>(-1);

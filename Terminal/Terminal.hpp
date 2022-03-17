@@ -14,7 +14,11 @@
 #define NOMINMAX
 #include <windows.h>
 #else
+#ifdef __APPLE__
+#include <util.h>
+#else
 #include <pty.h>
+#endif
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
