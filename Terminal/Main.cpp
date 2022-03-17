@@ -6,6 +6,7 @@
 #include <cmath>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 #include <thread>
 #include <atomic>
@@ -19,7 +20,11 @@
 #include <Windows.h>
 #include <signal.h>
 #else
+#ifdef __APPLE__
+#include <util.h>
+#else
 #include <pty.h>
+#endif
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -30,13 +35,20 @@
 using namespace std;
 using namespace sf;
 
+#ifdef TERMINAL_MAIN
+#include "vterm.h"
+#include "vterm_keycodes.h"
+#else
 #include "vterm/vterm.h"
 #include "vterm/vterm_keycodes.h"
+#endif
 
 #include "OptionFile.hpp"
 #include "Terminal.hpp"
 #include "SystemFrontend.hpp"
+#ifdef SFML_SYSTEM_WINDOWS
 #include "WslFrontend.hpp"
+#endif
 
 OptionFile option;
 Terminal* term;
@@ -61,8 +73,13 @@ Sprite coverAutoscale(Texture& texture, Vector2f asize) {
 
 
 int main(int argc, char* argv[]) {
-
-	option.loadFromFile("Terminal.ini");
+    bool load = true;
+	if (!option.loadFromFile("./Terminal.ini"))
+        if (!option.loadFromFile("../Terminal.ini"))
+            load = option.loadFromFile("../../Terminal.ini");
+    
+    std::cout << load << std::endl;
+    
 	int rows, cols;
 	Vector2i cellSize = Vector2i(atoi(option.get("cell_width").c_str()), atoi(option.get("cell_height").c_str()));
 	int charSize = atoi(option.get("fontsize").c_str());
@@ -79,6 +96,7 @@ int main(int argc, char* argv[]) {
 	} else {
 		rows = atoi(option.get("rows").c_str());
 		cols = atoi(option.get("cols").c_str());
+        std::cout << rows << 'x' << cols << std::endl;
 		mode = VideoMode(cols * cellSize.x, rows * cellSize.y);
 	}
 	string bgFilename = option.get("background_image");
@@ -112,7 +130,8 @@ int main(int argc, char* argv[]) {
 	if (!font.loadFromFile("/usr/share/fonts/" + option.get("font")))
 		if (!font.loadFromFile("/mnt/Windows/Windows/Fonts/ConsolasDengXianSemiBold.ttf"))
 			if (!font.loadFromFile("/mnt/c/Windows/Fonts/ConsolasDengXianSemiBold.ttf"))
-				font.loadFromFile("/usr/share/fonts/truetype/unifont/unifont.ttf");
+				if (!font.loadFromFile("/usr/share/fonts/truetype/unifont/unifont.ttf"))
+                    font.loadFromFile("/System/Library/Fonts/Supplemental/Courier New.ttf");
 #endif
 
 	if (fullscreen)
@@ -151,6 +170,7 @@ int main(int argc, char* argv[]) {
 	term = new Terminal(new SystemFrontend(option.get("shell"), rows, cols), rows, cols, cellSize, charSize, useBold, scrollMaxLines);
 #endif
 	term->cbSetWindowSize = [&](int width, int height) {
+        std::cout << win->getSize().x << 'x' << win->getSize().y << " -> " << width << 'x' << height << std::endl;
 		win->setSize(Vector2u(width, height));
 		win->setView(View(FloatRect(0, 0, width, height)));
 	};
@@ -159,6 +179,8 @@ int main(int argc, char* argv[]) {
 	};
 
 	term->invalidate();
+    
+    win->setActive(true);
 
 	Clock cl;
 	while (win->isOpen()) {
@@ -214,10 +236,10 @@ int main(int argc, char* argv[]) {
 				}
 
 				bgSprite = coverAutoscale(bgTexture, Vector2f(e.size.width, e.size.height));
-			} else if (e.type == Event::GainedFocus)
+			} /*else if (e.type == Event::GainedFocus)
 				updateRate = cfgUpdateRate;
 			else if (e.type == Event::LostFocus)
-				updateRate = 10;
+				updateRate = 10;*/
 			term->processEvent(*win, e);
 		}
 
