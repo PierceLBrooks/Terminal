@@ -26,7 +26,11 @@
 #include <signal.h>
 #endif
 
+#ifdef TERMINAL_MAIN
+#include "vterm.h"
+#else
 #include "vterm/vterm.h"
+#endif
 
 #include "Frontend.hpp"
 
