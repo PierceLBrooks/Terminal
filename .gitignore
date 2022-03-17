@@ -21,6 +21,7 @@ Terminal/wsl-backend/wsl-backend
 *.userprefs
 
 # Build results
+[Bb]uild/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
