@@ -114,7 +114,7 @@ public:
 		return 1;
 	}
 
-	static void writeCall(const char* s, size_t len, void* data) {
+	static void writeCall(const char* s, std::size_t len, void* data) {
 		Terminal* term = reinterpret_cast<Terminal*>(data);
 		term->frontend->write(s, len);
 	}

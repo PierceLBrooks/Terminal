@@ -4,7 +4,7 @@
 using namespace std;
 
 
-size_t SystemFrontend::tryRead(void* data, size_t maxlen) {
+size_t SystemFrontend::tryRead(void* data, std::size_t maxlen) {
 	lock_guard<mutex> lock(bufReadLock);
 
 	if (bufRead.size() >= maxlen) {

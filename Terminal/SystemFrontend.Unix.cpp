@@ -52,7 +52,7 @@ SystemFrontend::~SystemFrontend() {
 }
 
 
-bool SystemFrontend::write(const void* data, size_t len) {
+bool SystemFrontend::write(const void* data, std::size_t len) {
 	return ::write(pty, data, len) != -1;
 }
 

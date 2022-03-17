@@ -10,9 +10,17 @@
 #ifdef SFML_SYSTEM_WINDOWS
 #include <windows.h>
 #else
+#ifdef __APPLE__
+#include <util.h>
+#else
 #include <pty.h>
+#endif
 #include <errno.h>
 #include <unistd.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
@@ -30,10 +38,10 @@ public:
 
 public:
 
-	virtual size_t tryRead(void* data, size_t maxlen) override;
-	virtual size_t getBufferedSize() override;
+	virtual std::size_t tryRead(void* data, std::size_t maxlen) override;
+	virtual std::size_t getBufferedSize() override;
 
-	virtual bool write(const void* data, size_t len) override;
+	virtual bool write(const void* data, std::size_t len) override;
 
 public:
 
