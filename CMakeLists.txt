@@ -58,5 +58,5 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/Terminal/wsl-backend/")
 
 add_library(terminal SHARED ${SRC})
 target_compile_features(terminal PRIVATE cxx_std_14)
-install(TARGETS example)
+install(TARGETS terminal)
 
